@@ -10,6 +10,8 @@ This project can be built with the ANT script in the SPK-GPS_Build folder. Just 
 
 I've tried to make this as simple as possible, in order to ask for help getting it to work. If you have any questions, please email me at steve+github@speakaboos.com.
 
+There are two different folders for compiling the native JAR file for inclusion in the ANE. I believe the problem lies in the way I'm trying to include the google-play-services.jar file in my project. I've tried including it from the libs folder in the Eclipse version. I've tried combining it with my own jar file. I've tried using AndroidStudio and Gradle to see if their way of including a module would help. I've used a platformoptions file to see if AIR could include the library that way too. I'm out of ideas.'
+
 
 
 
