@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Air Native Extension Build Scripts" default="buildANE">
+
+	<property file="build.config"/>
+	
+	<taskdef name="mxmlcTask" classname="flex.ant.MxmlcTask" classpath="${FLEX_HOME}/ant/lib/flexTasks.jar" /> 
+	<taskdef resource="flexTasks.tasks" classpath="${FLEX_HOME}/ant/lib/flexTasks.jar" /> 
+	<taskdef resource="net/sf/antcontrib/antlib.xml">
+		<classpath>
+			<pathelement location="${FLEX_HOME}/ant/lib/ant-contrib.jar" /> 
+		</classpath>
+	</taskdef>
+	
+	<target name="buildANE" depends="compile,makejar,combinejars,buildswcs,unzipswcs,package,distribute" description="Full build of extension">
+		<echo>${ane.name} Native Extension created!</echo>
+	</target>
+
+	<target name="clean" description="Clean the output and temp folders">
+		<echo>Cleaning ${ane.name} ANE output and temp folders...</echo>
+		
+		<delete file="${project.dir.build}/com.speakaboos.ane.${ane.name}.ane"/>
+		<delete file="${project.dir.build}/library.swf"/>
+		<delete dir="${project.dir.build}/Android-ARM"/>
+		<delete dir="${project.dir.build}/Android-x86"/>
+
+		<delete file="${project.dir.swc}/bin/library.swf"/>
+		<delete file="${project.dir.swc}/bin/${ane.name}.swc"/>
+		
+		<delete file="${project.dir.default}/bin/library.swf"/>
+		<delete file="${project.dir.default}/bin/${ane.name}.swc"/>
+	
+		<delete file="${project.dir.java}/${project.prefix}.jar"/>
+		<delete file="${project.dir.java}/${project.prefix}_combined.jar"/>
+		<delete dir="${project.dir.java}/classes"/>
+	</target>
+
+	<target name ="compile" description="Compile Java classes for inclusion in JAR">
+		<echo>Compile</echo>
+
+		<delete dir="${project.dir.java}/classes"/>
+		<mkdir dir="${project.dir.java}/classes"/>
+
+		<path id = "classpath">
+			<fileset dir="${project.dir.java}/libs" includes="*.jar"/>
+			<pathelement location="${android.sdk}/android.jar" />
+			<pathelement location="${FLEX_HOME}/lib/android/FlashRuntimeExtensions.jar"/>
+		</path>
+		
+		<javac
+            includeantruntime="false"
+            failonerror="true"
+            srcdir="${project.dir.java}/src"
+            destdir="${project.dir.java}/classes"
+            classpathref="classpath">
+		</javac>
+		
+	</target>
+
+
+	<target name ="makejar" description="make jar file from source">
+		<echo>Make Jar</echo>
+		<delete file="${project.dir.java}/${project.prefix}.jar"/>
+		<jar
+            destfile="${project.dir.java}/${project.prefix}.jar"
+            basedir="${project.dir.java}/classes"
+        />
+	</target>
+	
+	
+	<target name ="combinejars" description="combine jars">
+	    <!-- combines output jar with any other jars in the libs folder -->
+		<delete file="${project.dir.java}/${project.prefix}_combined.jar"/>
+		<zip destfile="${project.dir.java}/${project.prefix}_combined.jar">
+		    <zipgroupfileset dir="${project.dir.java}" includes="${project.prefix}.jar"/>
+		   <zipgroupfileset dir="${project.dir.java}/libs" excludes="android-support-v4.jar" includes="*.jar"/>
+		</zip>
+	</target>
+	
+	
+	<target name="buildswcs" depends="" description="" >
+		<compc output="${project.dir.swc}/bin/${ane.name}.swc" swf-version="24">
+			<load-config filename="${FLEX_HOME}/frameworks/air-config.xml" />
+			<source-path path-element="${project.dir.swc}/src/" />
+			<include-classes>${ane.baseclass}</include-classes>
+		</compc>
+		<compc output="${project.dir.default}/bin/${ane.name}.swc" swf-version="24">
+			<load-config filename="${FLEX_HOME}/frameworks/air-config.xml" />
+			<source-path path-element="${project.dir.default}/src/" />
+			<include-classes>${ane.baseclass}</include-classes>
+		</compc>
+	</target>
+
+	
+	<target name ="unzipswcs" description="unzip swcs">
+		<delete file="${project.dir.swc}/bin/library.swf"/>
+		<unzip src="${project.dir.swc}/bin/${ane.name}.swc" dest="${project.dir.swc}/bin/" overwrite="true">
+			<patternset>
+				<include name="library.swf" />
+			</patternset>
+		</unzip>
+		
+		<delete file="${project.dir.default}/bin/library.swf"/>
+		<unzip src="${project.dir.default}/bin/${ane.name}.swc" dest="${project.dir.default}/bin/" overwrite="true">
+			<patternset>
+				<include name="library.swf" />
+			</patternset>
+		</unzip>
+	</target>
+
+	<target name="package" description="Create the extension package">
+		<echo>Creating ${ane.name} (.ane)...</echo>
+		
+		<delete dir="${project.dir.build}/Android-ARM"/>
+		<mkdir dir="${project.dir.build}/Android-ARM"/>
+		
+		<copy file="${project.dir.swc}/bin/library.swf" tofile="${project.dir.build}/Android-ARM/library.swf"/>
+		 
+		<!-- USE UNCOMBINED JAR -->
+		<copy file="${project.dir.java}/${project.prefix}.jar" tofile="${project.dir.build}/Android-ARM/${project.prefix}.jar"/>
+		
+		<!-- USE COMBINED JAR - combines output jar with any other jars in the libs folder
+		<copy file="${project.dir.java}/${project.prefix}_combined.jar" tofile="${project.dir.build}/Android-ARM/${project.prefix}.jar"/>
+		-->
+		 
+		<!-- USE COMBINED AAR
+		<copy file="${project.dir.java}/SPK-GPS.aar" tofile="${project.dir.build}/Android-ARM/${project.prefix}.jar"/>
+		-->
+		
+		<!-- GOOGLE PLAY SERVICES -->
+		<copy file="${google-play-services_lib.dir}/libs/google-play-services.jar" tofile="${project.dir.build}/Android-ARM/google-play-services.jar"/>
+		<copy todir="${project.dir.build}/Android-ARM/google-play-services-res">
+			<fileset dir="${google-play-services_lib.dir}/res"/>
+		</copy>
+		
+		<copy todir="${project.dir.build}/Android-ARM/libs">
+			<fileset dir="${project.dir.java}/libs"/>
+		</copy>
+		
+		<exec executable="${adt}" failonerror="true" dir="${project.dir.build}">
+			<arg value="-package"/>
+			<arg value="-target"/>
+			<arg value="ane"/>
+			<arg value="com.speakaboos.ane.${ane.name}.ane"/>
+			<arg value="extension.xml"/>
+			<arg value="-swc"/>
+			<arg value="${project.dir.swc}/bin/${ane.name}.swc"/>
+			<arg value="-platform"/>
+			<arg value="Android-ARM"/>
+			
+			<!-- USE PLATFORMOPTIONS.XML -->
+			<arg value="-platformoptions"/>
+			<arg value="platform-android.xml"/>
+			 
+			<arg value="-C"/>
+			<arg value="${project.dir.build}/Android-ARM"/>
+			<arg value="."/>
+			<arg value="-platform"/>
+			<arg value="default"/>
+			<arg value="-C"/>
+			<arg value="${project.dir.default}/bin"/>
+			<arg value="."/>
+		</exec>
+	</target>
+	
+	<target name="distribute" description="copy files to Speakaboos Mobile App and Test Folder">
+		<copy file="${project.dir.swc}/bin/${ane.name}.swc" tofile="${project.dir.test}/libs/${ane.name}.swc"/>
+		<copy file="${project.dir.build}/com.speakaboos.ane.${ane.name}.ane" tofile="${project.dir.test}/libs_ane/com.speakaboos.ane.${ane.name}.ane"/>
+	</target>
+	
+	<target name="buildTest" depends="compileTest,packageTest,installTest" />
+	
+	<target name="compileTest" depends="" description="" >
+	    <mxmlcTask file="${project.testclass}" output="${project.dir.test}/bin-debug/${project.testswf}" actionscript-file-encoding="UTF-8" keep-generated-actionscript="false" show-actionscript-warnings="true" optimize="true" locale="en_US" incremental="true" fork="true" maxmemory="1024m" >
+			<load-config filename="${project.dir.build}/baseConfig.xml" />
+			<source-path path-element="${project.dir.test}/src" />
+			<compiler.advanced-telemetry>true</compiler.advanced-telemetry>
+			<compiler.debug>true</compiler.debug>
+		</mxmlcTask> 
+	</target>
+	
+	<target name="packageTest" depends="" description="package app without settings, private">
+		<mkdir dir="${project.dir.test}/bin-debug/libs_ane"/>
+		<copy file="${project.dir.test}/libs_ane/com.speakaboos.ane.${ane.name}.ane" tofile="${project.dir.test}/bin-debug/libs_ane/com.speakaboos.ane.${ane.name}.ane"/>
+		
+		<exec executable="${adt}" failonerror="true" dir="${project.dir.build}">
+			<arg line="-package -target apk-debug -storetype pkcs12 -keystore ccm-dist-android.p12 -storepass gr33nDr@g0n ${project.dir.test}/bin-debug/${project.testapk} ${project.testmanifest} -C ${project.dir.test}/bin-debug ${project.testswf} -extdir ${project.dir.test}/bin-debug/libs_ane" />
+		</exec>
+	</target>
+	
+	<target name="installTest" depends="" description="" >
+		<exec executable="sh" failonerror="true">
+			<arg value="-c" />
+			<arg value="adb install -r ${project.dir.test}/bin-debug/${project.testapk}"/>
+		</exec>
+    </target>
+	
+	
+
+</project>

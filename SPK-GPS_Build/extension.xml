@@ -1,0 +1,19 @@
+<extension xmlns="http://ns.adobe.com/air/extension/16.0">
+	<id>com.speakaboos.ane.GooglePlayServices</id>
+	<versionNumber>1.0.0</versionNumber>
+	<platforms>
+
+		<platform name="Android-ARM">
+			<applicationDeployment>
+				<nativeLibrary>SPK-GPS.jar</nativeLibrary>
+				<initializer>com.speakaboos.ane.gps.SpeakaboosANE</initializer>
+				<finalizer>com.speakaboos.ane.gps.SpeakaboosANE</finalizer>
+			</applicationDeployment>
+		</platform>
+
+		<platform name="default">
+			<applicationDeployment />
+		</platform>
+
+	</platforms>
+</extension>
